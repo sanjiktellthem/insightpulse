@@ -1,0 +1,157 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Account {
+  id            String           @id @default(cuid())
+  name          String
+  industry      String
+  city          String
+  country       String
+  planTier      String
+  status        String
+  mrr           Float
+  churnReason   String?
+  createdAt     DateTime         @default(now())
+  users         AnalyticsUser[]
+  subscriptions Subscription[]
+  invoices      Invoice[]
+  events        ProductEvent[]
+  tickets       SupportTicket[]
+  campaigns     MarketingCampaign[]
+}
+
+model AnalyticsUser {
+  id            String    @id @default(cuid())
+  accountId     String
+  email         String    @unique
+  fullName      String
+  role          String
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  lastSeenAt    DateTime?
+  account       Account   @relation(fields: [accountId], references: [id])
+}
+
+model Subscription {
+  id            String   @id @default(cuid())
+  accountId     String
+  planTier      String
+  status        String
+  seats         Int
+  startedAt     DateTime
+  canceledAt    DateTime?
+  cancelReason  String?
+  renewalDate   DateTime?
+  account       Account  @relation(fields: [accountId], references: [id])
+}
+
+model Invoice {
+  id            String   @id @default(cuid())
+  accountId     String
+  invoiceDate   DateTime
+  amount        Float
+  currency      String
+  status        String
+  paidAt        DateTime?
+  account       Account  @relation(fields: [accountId], references: [id])
+}
+
+model ProductEvent {
+  id            String   @id @default(cuid())
+  accountId     String
+  userId        String?
+  eventName     String
+  eventCategory String
+  value         Float?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  account       Account  @relation(fields: [accountId], references: [id])
+}
+
+model SupportTicket {
+  id            String   @id @default(cuid())
+  accountId     String
+  priority      String
+  status        String
+  category      String
+  openedAt      DateTime
+  resolvedAt    DateTime?
+  csatScore     Int?
+  account       Account  @relation(fields: [accountId], references: [id])
+}
+
+model MarketingCampaign {
+  id            String               @id @default(cuid())
+  accountId     String
+  name          String
+  channel       String
+  spend         Float
+  impressions   Int
+  clicks        Int
+  conversions   Int
+  startedAt     DateTime
+  endedAt       DateTime?
+  account       Account              @relation(fields: [accountId], references: [id])
+  attributions  CampaignAttribution[]
+}
+
+model CampaignAttribution {
+  id            String            @id @default(cuid())
+  campaignId    String
+  accountId     String
+  revenue       Float
+  attributedAt  DateTime
+  source        String
+  campaign      MarketingCampaign @relation(fields: [campaignId], references: [id])
+}
+
+model Conversation {
+  id            String    @id @default(cuid())
+  userId        String
+  locale        String    @default("en")
+  createdAt     DateTime  @default(now())
+  messages      Message[]
+  insights      Insight[]
+}
+
+model Message {
+  id            String       @id @default(cuid())
+  conversationId String
+  role          MessageRole
+  content       String
+  createdAt     DateTime     @default(now())
+  conversation  Conversation @relation(fields: [conversationId], references: [id])
+}
+
+model Insight {
+  id             String       @id @default(cuid())
+  conversationId String?
+  title          String
+  summary        String
+  tags           String[]
+  sql            String
+  dataPreview    Json
+  charts         Json
+  createdAt      DateTime     @default(now())
+  conversation   Conversation? @relation(fields: [conversationId], references: [id])
+  pins           DashboardPin[]
+}
+
+model DashboardPin {
+  id          String   @id @default(cuid())
+  insightId   String
+  position    Int
+  createdAt   DateTime @default(now())
+  insight     Insight  @relation(fields: [insightId], references: [id])
+}
+
+enum MessageRole {
+  user
+  assistant
+}
